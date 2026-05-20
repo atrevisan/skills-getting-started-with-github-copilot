@@ -1,0 +1,957 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.0.3, pluggy-1.6.0 -- /usr/local/py-utils/venvs/pytest/bin/python
+cachedir: .pytest_cache
+rootdir: /workspaces/skills-getting-started-with-github-copilot
+configfile: pytest.ini
+plugins: anyio-4.13.0
+collecting ... collected 33 items
+
+tests/test_business_logic.py::TestSignupValidation::test_signup_email_persists_after_signup FAILED [  3%]
+tests/test_business_logic.py::TestSignupValidation::test_multiple_signups_same_activity FAILED [  6%]
+tests/test_business_logic.py::TestSignupValidation::test_signup_returns_updated_participant_count FAILED [  9%]
+tests/test_business_logic.py::TestUnregisterValidation::test_unregister_email_removed_from_activity FAILED [ 12%]
+tests/test_business_logic.py::TestUnregisterValidation::test_signup_unregister_signup_again FAILED [ 15%]
+tests/test_business_logic.py::TestDataIntegrity::test_activity_structure_consistency FAILED [ 18%]
+tests/test_business_logic.py::TestDataIntegrity::test_participants_is_list_of_strings FAILED [ 21%]
+tests/test_business_logic.py::TestDataIntegrity::test_max_participants_field_exists FAILED [ 24%]
+tests/test_business_logic.py::TestActivitiesExist::test_default_activities_exist FAILED [ 27%]
+tests/test_endpoints.py::TestRootEndpoint::test_root_redirect PASSED     [ 30%]
+tests/test_endpoints.py::TestGetActivitiesEndpoint::test_get_activities_success FAILED [ 33%]
+tests/test_endpoints.py::TestGetActivitiesEndpoint::test_get_activities_structure FAILED [ 36%]
+tests/test_endpoints.py::TestGetActivitiesEndpoint::test_get_activities_contains_chess_club FAILED [ 39%]
+tests/test_endpoints.py::TestSignupEndpoint::test_signup_success FAILED  [ 42%]
+tests/test_endpoints.py::TestSignupEndpoint::test_signup_with_different_emails FAILED [ 45%]
+tests/test_endpoints.py::TestSignupEndpoint::test_signup_duplicate_email_fails FAILED [ 48%]
+tests/test_endpoints.py::TestSignupEndpoint::test_signup_invalid_activity_fails FAILED [ 51%]
+tests/test_endpoints.py::TestSignupEndpoint::test_signup_response_contains_activity_info FAILED [ 54%]
+tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_success FAILED [ 57%]
+tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_nonexistent_participant_fails FAILED [ 60%]
+tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_from_invalid_activity_fails FAILED [ 63%]
+tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_response_contains_activity_info FAILED [ 66%]
+tests/test_error_handling.py::TestSignupErrorHandling::test_signup_invalid_activity_returns_404 FAILED [ 69%]
+tests/test_error_handling.py::TestSignupErrorHandling::test_signup_duplicate_email_returns_400 FAILED [ 72%]
+tests/test_error_handling.py::TestSignupErrorHandling::test_signup_duplicate_error_message_clear FAILED [ 75%]
+tests/test_error_handling.py::TestSignupErrorHandling::test_signup_activity_not_found_error_message FAILED [ 78%]
+tests/test_error_handling.py::TestUnregisterErrorHandling::test_unregister_invalid_activity_returns_404 FAILED [ 81%]
+tests/test_error_handling.py::TestUnregisterErrorHandling::test_unregister_nonexistent_participant_returns_404 FAILED [ 84%]
+tests/test_error_handling.py::TestUnregisterErrorHandling::test_unregister_nonexistent_participant_error_message FAILED [ 87%]
+tests/test_error_handling.py::TestEdgeCases::test_signup_with_empty_participants_list FAILED [ 90%]
+tests/test_error_handling.py::TestEdgeCases::test_signup_multiple_activities_isolated FAILED [ 93%]
+tests/test_error_handling.py::TestEdgeCases::test_case_sensitive_activity_names FAILED [ 96%]
+tests/test_error_handling.py::TestEdgeCases::test_signup_different_emails_same_activity FAILED [100%]
+
+=================================== FAILURES ===================================
+_________ TestSignupValidation.test_signup_email_persists_after_signup _________
+
+self = <tests.test_business_logic.TestSignupValidation object at 0x729198d5b250>
+client = <starlette.testclient.TestClient object at 0x729198c36120>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_email_persists_after_signup(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a student
+        ACT: Retrieve activities list
+        ASSERT: Verify email appears in the activity's participants
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act: Sign up
+        client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Act: Retrieve activities
+        response = client.get("/activities")
+        activities = response.json()
+    
+        # Assert: Find the activity and verify email is in participants
+>       chess_club = next(a for a in activities if a["name"] == valid_activity)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_business_logic.py:31: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <dict_keyiterator object at 0x729198c1c270>
+
+>   chess_club = next(a for a in activities if a["name"] == valid_activity)
+                                               ^^^^^^^^^
+E   TypeError: string indices must be integers, not 'str'
+
+tests/test_business_logic.py:31: TypeError
+___________ TestSignupValidation.test_multiple_signups_same_activity ___________
+
+self = <tests.test_business_logic.TestSignupValidation object at 0x729198bd07d0>
+client = <starlette.testclient.TestClient object at 0x729198bd2350>
+valid_activity = 'Chess Club'
+
+    def test_multiple_signups_same_activity(self, client, valid_activity):
+        """
+        ARRANGE: Prepare multiple emails
+        ACT: Sign up all to same activity
+        ASSERT: Verify all are present in activity participants
+        """
+        # Arrange
+        emails = [
+            "alice@example.com",
+            "bob@example.com",
+            "charlie@example.com"
+        ]
+    
+        # Act: Sign up all students
+        for email in emails:
+            client.post(
+                f"/activities/{valid_activity}/signup",
+                json={"email": email}
+            )
+    
+        # Assert: Verify all are in the activity
+        response = client.get("/activities")
+        activities = response.json()
+>       chess_club = next(a for a in activities if a["name"] == valid_activity)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_business_logic.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <dict_keyiterator object at 0x729198c5c540>
+
+>   chess_club = next(a for a in activities if a["name"] == valid_activity)
+                                               ^^^^^^^^^
+E   TypeError: string indices must be integers, not 'str'
+
+tests/test_business_logic.py:57: TypeError
+______ TestSignupValidation.test_signup_returns_updated_participant_count ______
+
+self = <tests.test_business_logic.TestSignupValidation object at 0x729198c88510>
+client = <starlette.testclient.TestClient object at 0x729198bd3390>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_returns_updated_participant_count(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a student
+        ACT: Retrieve the signup response
+        ASSERT: Verify participants list includes the new participant
+        """
+        # Arrange
+        initial_response = client.get("/activities")
+        initial_activities = initial_response.json()
+        initial_count = len(
+>           next(a for a in initial_activities if a["name"] == valid_activity)["participants"]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        )
+
+tests/test_business_logic.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <dict_keyiterator object at 0x729198c1c180>
+
+>       next(a for a in initial_activities if a["name"] == valid_activity)["participants"]
+                                              ^^^^^^^^^
+    )
+E   TypeError: string indices must be integers, not 'str'
+
+tests/test_business_logic.py:72: TypeError
+_____ TestUnregisterValidation.test_unregister_email_removed_from_activity _____
+
+self = <tests.test_business_logic.TestUnregisterValidation object at 0x729198bd0690>
+client = <starlette.testclient.TestClient object at 0x729198c8bbb0>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_unregister_email_removed_from_activity(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up and then unregister a student
+        ACT: Retrieve activities list
+        ASSERT: Verify email no longer appears in participants
+        """
+        # Arrange: Sign up
+        client.post(
+            f"/activities/{valid_activity}/signup",
+            json={"email": sample_email}
+        )
+    
+        # Act: Unregister
+>       client.delete(
+            f"/activities/{valid_activity}/participants",
+            json={"email": sample_email}
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_business_logic.py:102: TypeError
+_________ TestUnregisterValidation.test_signup_unregister_signup_again _________
+
+self = <tests.test_business_logic.TestUnregisterValidation object at 0x729198bd0910>
+client = <starlette.testclient.TestClient object at 0x729198c616e0>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_unregister_signup_again(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up, unregister, then attempt to sign up again
+        ACT: Perform all three actions in sequence
+        ASSERT: Verify can sign up again after unregistering
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act & Assert: First signup succeeds
+        response1 = client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+>       assert response1.status_code == 200
+E       assert 422 == 200
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_business_logic.py:129: AssertionError
+____________ TestDataIntegrity.test_activity_structure_consistency _____________
+
+self = <tests.test_business_logic.TestDataIntegrity object at 0x729198bd0a50>
+client = <starlette.testclient.TestClient object at 0x729198d86c30>
+
+    def test_activity_structure_consistency(self, client):
+        """
+        ARRANGE: Retrieve activities
+        ACT: Check structure of each activity
+        ASSERT: Verify all activities have consistent structure
+        """
+        # Arrange
+        required_fields = {"name", "description", "schedule", "max_participants", "participants"}
+    
+        # Act
+        response = client.get("/activities")
+        activities = response.json()
+    
+        # Assert: All activities have the same structure
+        for activity in activities:
+>           assert all(field in activity for field in required_fields)
+E           assert False
+E            +  where False = all(<generator object TestDataIntegrity.test_activity_structure_consistency.<locals>.<genexpr> at 0x729198c431d0>)
+
+tests/test_business_logic.py:165: AssertionError
+____________ TestDataIntegrity.test_participants_is_list_of_strings ____________
+
+self = <tests.test_business_logic.TestDataIntegrity object at 0x729198bd0b90>
+client = <starlette.testclient.TestClient object at 0x729198b47020>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_participants_is_list_of_strings(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a participant
+        ACT: Get the activity response
+        ASSERT: Verify participants is a list of strings
+        """
+        # Arrange
+        # Act
+        response = client.post(
+            f"/activities/{valid_activity}/signup",
+            json={"email": sample_email}
+        )
+    
+        # Assert
+        data = response.json()
+>       assert isinstance(data["participants"], list)
+                          ^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'participants'
+
+tests/test_business_logic.py:188: KeyError
+_____________ TestDataIntegrity.test_max_participants_field_exists _____________
+
+self = <tests.test_business_logic.TestDataIntegrity object at 0x729198c88640>
+client = <starlette.testclient.TestClient object at 0x729198b46ad0>
+
+    def test_max_participants_field_exists(self, client):
+        """
+        ARRANGE: Retrieve activities
+        ACT: Check max_participants field
+        ASSERT: Verify max_participants is an integer
+        """
+        # Arrange & Act
+        response = client.get("/activities")
+        activities = response.json()
+    
+        # Assert
+        for activity in activities:
+>           assert "max_participants" in activity
+E           AssertionError: assert 'max_participants' in 'Chess Club'
+
+tests/test_business_logic.py:203: AssertionError
+______________ TestActivitiesExist.test_default_activities_exist _______________
+
+self = <tests.test_business_logic.TestActivitiesExist object at 0x729198bd0cd0>
+client = <starlette.testclient.TestClient object at 0x729198db7450>
+
+    def test_default_activities_exist(self, client):
+        """
+        ARRANGE: Get all activities
+        ACT: Check for specific pre-populated activities
+        ASSERT: Verify expected activities exist
+        """
+        # Arrange
+        expected_activities = [
+            "Chess Club",
+            "Programming Class",
+            "Gym Class",
+            "Basketball Team",
+            "Yoga Club"
+        ]
+    
+        # Act
+        response = client.get("/activities")
+        activities = response.json()
+>       activity_names = [a["name"] for a in activities]
+                          ^^^^^^^^^
+E       TypeError: string indices must be integers, not 'str'
+
+tests/test_business_logic.py:229: TypeError
+____________ TestGetActivitiesEndpoint.test_get_activities_success _____________
+
+self = <tests.test_endpoints.TestGetActivitiesEndpoint object at 0x729198bd1090>
+client = <starlette.testclient.TestClient object at 0x729198b4a210>
+
+    def test_get_activities_success(self, client):
+        """
+        ARRANGE: Set up the test client
+        ACT: Send a GET request to /activities
+        ASSERT: Verify 200 status and response contains activity list
+        """
+        # Arrange
+        # (no setup needed, activities are pre-populated in the app)
+    
+        # Act
+        response = client.get("/activities")
+    
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+>       assert isinstance(data, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'Art Studio': {'description': 'Explore painting, drawing, and mixed media art', 'max_participants': 16, 'participants': ['lily@mergington.edu', 'sam@mergington.edu'], 'schedule': 'Mondays and Thursdays, 3:45 PM - 5:15 PM'}, 'Basketball Team': {'description': 'Competitive basketball practice and games', 'max_participants': 15, 'participants': ['alex@mergington.edu', 'jordan@mergington.edu'], 'schedule': 'Tuesdays and Thursdays, 4:00 PM - 6:00 PM'}, 'Chess Club': {'description': 'Learn strategies and compete in chess tournaments', 'max_participants': 12, 'participants': ['michael@mergington.edu', 'daniel@mergington.edu'], 'schedule': 'Fridays, 3:30 PM - 5:00 PM'}, 'Debate Team': {'description': 'Build public speaking skills and compete in debates', 'max_participants': 14, 'participants': ['nina@mergington.edu', 'derek@mergington.edu'], 'schedule': 'Wednesdays, 4:00 PM - 5:30 PM'}, ...}, list)
+
+tests/test_endpoints.py:46: AssertionError
+___________ TestGetActivitiesEndpoint.test_get_activities_structure ____________
+
+self = <tests.test_endpoints.TestGetActivitiesEndpoint object at 0x729198bd11d0>
+client = <starlette.testclient.TestClient object at 0x729198b48b90>
+
+    def test_get_activities_structure(self, client):
+        """
+        ARRANGE: Get activities response
+        ACT: Check the structure of returned activity objects
+        ASSERT: Verify each activity has required fields
+        """
+        # Arrange
+        required_fields = {"name", "description", "schedule", "max_participants", "participants"}
+    
+        # Act
+        response = client.get("/activities")
+        activities = response.json()
+    
+        # Assert
+        assert len(activities) > 0
+>       first_activity = activities[0]
+                         ^^^^^^^^^^^^^
+E       KeyError: 0
+
+tests/test_endpoints.py:64: KeyError
+______ TestGetActivitiesEndpoint.test_get_activities_contains_chess_club _______
+
+self = <tests.test_endpoints.TestGetActivitiesEndpoint object at 0x729198c8a780>
+client = <starlette.testclient.TestClient object at 0x729198c1a270>
+
+    def test_get_activities_contains_chess_club(self, client):
+        """
+        ARRANGE: Retrieve all activities
+        ACT: Search for Chess Club in response
+        ASSERT: Verify Chess Club exists in the activities list
+        """
+        # Arrange
+        expected_activity_name = "Chess Club"
+    
+        # Act
+        response = client.get("/activities")
+        activities = response.json()
+    
+        # Assert
+>       activity_names = [activity["name"] for activity in activities]
+                          ^^^^^^^^^^^^^^^^
+E       TypeError: string indices must be integers, not 'str'
+
+tests/test_endpoints.py:81: TypeError
+____________________ TestSignupEndpoint.test_signup_success ____________________
+
+self = <tests.test_endpoints.TestSignupEndpoint object at 0x729198bd1310>
+client = <starlette.testclient.TestClient object at 0x729198c844b0>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_success(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Set up client, valid activity, and email
+        ACT: Send POST request to signup endpoint
+        ASSERT: Verify 200 status and participant is added
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act
+        response = client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+>       assert response.status_code == 200
+E       assert 422 == 200
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_endpoints.py:104: AssertionError
+_____________ TestSignupEndpoint.test_signup_with_different_emails _____________
+
+self = <tests.test_endpoints.TestSignupEndpoint object at 0x729198bd1450>
+client = <starlette.testclient.TestClient object at 0x729198b297f0>
+valid_activity = 'Chess Club'
+
+    def test_signup_with_different_emails(self, client, valid_activity):
+        """
+        ARRANGE: Prepare multiple different email addresses
+        ACT: Sign up multiple students to the same activity
+        ASSERT: Verify all participants are added
+        """
+        # Arrange
+        emails = ["student1@example.com", "student2@example.com", "student3@example.com"]
+    
+        # Act & Assert
+        for email in emails:
+            response = client.post(
+                f"/activities/{valid_activity}/signup",
+                json={"email": email}
+            )
+>           assert response.status_code == 200
+E           assert 422 == 200
+E            +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_endpoints.py:123: AssertionError
+_____________ TestSignupEndpoint.test_signup_duplicate_email_fails _____________
+
+self = <tests.test_endpoints.TestSignupEndpoint object at 0x729198c8a520>
+client = <starlette.testclient.TestClient object at 0x729198c86190>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_duplicate_email_fails(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a student, prepare to sign them up again with same email
+        ACT: Attempt to sign up the same email twice
+        ASSERT: Verify the second signup fails with 400 status code
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act: First signup should succeed
+        response1 = client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert: First signup succeeds
+>       assert response1.status_code == 200
+E       assert 422 == 200
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_endpoints.py:143: AssertionError
+____________ TestSignupEndpoint.test_signup_invalid_activity_fails _____________
+
+self = <tests.test_endpoints.TestSignupEndpoint object at 0x729198c8a3f0>
+client = <starlette.testclient.TestClient object at 0x729198c19fd0>
+invalid_activity = 'NonexistentActivity', sample_email = 'student@example.com'
+
+    def test_signup_invalid_activity_fails(self, client, invalid_activity, sample_email):
+        """
+        ARRANGE: Prepare invalid activity name and email
+        ACT: Send POST request to signup for non-existent activity
+        ASSERT: Verify 404 status code
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act
+        response = client.post(
+            f"/activities/{invalid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+>       assert response.status_code == 404
+E       assert 422 == 404
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_endpoints.py:170: AssertionError
+________ TestSignupEndpoint.test_signup_response_contains_activity_info ________
+
+self = <tests.test_endpoints.TestSignupEndpoint object at 0x729198bf71d0>
+client = <starlette.testclient.TestClient object at 0x729198b29010>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_response_contains_activity_info(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Set up signup request with valid data
+        ACT: Send POST request to signup endpoint
+        ASSERT: Verify response contains activity information
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act
+        response = client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+        data = response.json()
+>       assert "name" in data
+E       AssertionError: assert 'name' in {'detail': [{'input': None, 'loc': ['query', 'email'], 'msg': 'Field required', 'type': 'missing'}]}
+
+tests/test_endpoints.py:189: AssertionError
+________________ TestUnregisterEndpoint.test_unregister_success ________________
+
+self = <tests.test_endpoints.TestUnregisterEndpoint object at 0x729198bd1590>
+client = <starlette.testclient.TestClient object at 0x729198c1b230>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_unregister_success(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a participant, prepare to unregister them
+        ACT: Send DELETE request to unregister the participant
+        ASSERT: Verify 200 status and participant is removed
+        """
+        # Arrange: First, sign up the student
+        client.post(
+            f"/activities/{valid_activity}/signup",
+            json={"email": sample_email}
+        )
+    
+        # Act: Unregister the student
+>       response = client.delete(
+            f"/activities/{valid_activity}/participants",
+            json={"email": sample_email}
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_endpoints.py:211: TypeError
+_____ TestUnregisterEndpoint.test_unregister_nonexistent_participant_fails _____
+
+self = <tests.test_endpoints.TestUnregisterEndpoint object at 0x729198bd16d0>
+client = <starlette.testclient.TestClient object at 0x729198c86b30>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_unregister_nonexistent_participant_fails(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Prepare to unregister a participant who is not signed up
+        ACT: Send DELETE request for non-existent participant
+        ASSERT: Verify 404 status code
+        """
+        # Arrange
+        # (no signup, so participant doesn't exist)
+    
+        # Act
+>       response = client.delete(
+            f"/activities/{valid_activity}/participants",
+            json={"email": sample_email}
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_endpoints.py:231: TypeError
+______ TestUnregisterEndpoint.test_unregister_from_invalid_activity_fails ______
+
+self = <tests.test_endpoints.TestUnregisterEndpoint object at 0x729198c8a060>
+client = <starlette.testclient.TestClient object at 0x729198b2a890>
+invalid_activity = 'NonexistentActivity', sample_email = 'student@example.com'
+
+    def test_unregister_from_invalid_activity_fails(self, client, invalid_activity, sample_email):
+        """
+        ARRANGE: Prepare to unregister from non-existent activity
+        ACT: Send DELETE request to invalid activity
+        ASSERT: Verify 404 status code
+        """
+        # Arrange
+        # (activity doesn't exist)
+    
+        # Act
+>       response = client.delete(
+            f"/activities/{invalid_activity}/participants",
+            json={"email": sample_email}
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_endpoints.py:249: TypeError
+____ TestUnregisterEndpoint.test_unregister_response_contains_activity_info ____
+
+self = <tests.test_endpoints.TestUnregisterEndpoint object at 0x729198c89e00>
+client = <starlette.testclient.TestClient object at 0x729198b2b770>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_unregister_response_contains_activity_info(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a participant, prepare to unregister
+        ACT: Send DELETE request
+        ASSERT: Verify response contains activity information
+        """
+        # Arrange: Sign up first
+        client.post(
+            f"/activities/{valid_activity}/signup",
+            json={"email": sample_email}
+        )
+    
+        # Act
+>       response = client.delete(
+            f"/activities/{valid_activity}/participants",
+            json={"email": sample_email}
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_endpoints.py:270: TypeError
+_______ TestSignupErrorHandling.test_signup_invalid_activity_returns_404 _______
+
+self = <tests.test_error_handling.TestSignupErrorHandling object at 0x729198bd1810>
+client = <starlette.testclient.TestClient object at 0x729198c07070>
+sample_email = 'student@example.com'
+
+    def test_signup_invalid_activity_returns_404(self, client, sample_email):
+        """
+        ARRANGE: Prepare invalid activity name
+        ACT: Attempt to sign up for invalid activity
+        ASSERT: Verify 404 status code is returned
+        """
+        # Arrange
+        invalid_activity = "NonexistentActivity"
+        email_payload = {"email": sample_email}
+    
+        # Act
+        response = client.post(
+            f"/activities/{invalid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+>       assert response.status_code == 404
+E       assert 422 == 404
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:28: AssertionError
+_______ TestSignupErrorHandling.test_signup_duplicate_email_returns_400 ________
+
+self = <tests.test_error_handling.TestSignupErrorHandling object at 0x729198bd1950>
+client = <starlette.testclient.TestClient object at 0x729198b2b150>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_duplicate_email_returns_400(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a student once
+        ACT: Attempt to sign up same email again
+        ASSERT: Verify 400 status code is returned
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+        client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Act
+        response = client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+>       assert response.status_code == 400
+E       assert 422 == 400
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:50: AssertionError
+______ TestSignupErrorHandling.test_signup_duplicate_error_message_clear _______
+
+self = <tests.test_error_handling.TestSignupErrorHandling object at 0x729198c896e0>
+client = <starlette.testclient.TestClient object at 0x729198b29d30>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_duplicate_error_message_clear(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Sign up a student
+        ACT: Attempt duplicate signup and check error response
+        ASSERT: Verify error message indicates duplicate signup
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+        client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Act
+        response = client.post(
+            f"/activities/{valid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+>       assert response.status_code == 400
+E       assert 422 == 400
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:72: AssertionError
+_____ TestSignupErrorHandling.test_signup_activity_not_found_error_message _____
+
+self = <tests.test_error_handling.TestSignupErrorHandling object at 0x729198c895b0>
+client = <starlette.testclient.TestClient object at 0x729198c19fd0>
+sample_email = 'student@example.com'
+
+    def test_signup_activity_not_found_error_message(self, client, sample_email):
+        """
+        ARRANGE: Prepare request for non-existent activity
+        ACT: Send signup request to invalid activity
+        ASSERT: Verify error message indicates activity not found
+        """
+        # Arrange
+        invalid_activity = "NonexistentActivity"
+        email_payload = {"email": sample_email}
+    
+        # Act
+        response = client.post(
+            f"/activities/{invalid_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert
+>       assert response.status_code == 404
+E       assert 422 == 404
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:92: AssertionError
+___ TestUnregisterErrorHandling.test_unregister_invalid_activity_returns_404 ___
+
+self = <tests.test_error_handling.TestUnregisterErrorHandling object at 0x729198bd1a90>
+client = <starlette.testclient.TestClient object at 0x729198b2ba10>
+sample_email = 'student@example.com'
+
+    def test_unregister_invalid_activity_returns_404(self, client, sample_email):
+        """
+        ARRANGE: Prepare invalid activity name
+        ACT: Attempt to unregister from invalid activity
+        ASSERT: Verify 404 status code is returned
+        """
+        # Arrange
+        invalid_activity = "NonexistentActivity"
+        email_payload = {"email": sample_email}
+    
+        # Act
+>       response = client.delete(
+            f"/activities/{invalid_activity}/participants",
+            json=email_payload
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_error_handling.py:110: TypeError
+_ TestUnregisterErrorHandling.test_unregister_nonexistent_participant_returns_404 _
+
+self = <tests.test_error_handling.TestUnregisterErrorHandling object at 0x729198bd1bd0>
+client = <starlette.testclient.TestClient object at 0x729198b2b150>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_unregister_nonexistent_participant_returns_404(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Prepare valid activity but participant not signed up
+        ACT: Attempt to unregister participant who is not signed up
+        ASSERT: Verify 404 status code is returned
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act
+>       response = client.delete(
+            f"/activities/{valid_activity}/participants",
+            json=email_payload
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_error_handling.py:128: TypeError
+_ TestUnregisterErrorHandling.test_unregister_nonexistent_participant_error_message _
+
+self = <tests.test_error_handling.TestUnregisterErrorHandling object at 0x729198c88fc0>
+client = <starlette.testclient.TestClient object at 0x729198ae8750>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_unregister_nonexistent_participant_error_message(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Prepare request to unregister non-existent participant
+        ACT: Send DELETE request
+        ASSERT: Verify error message indicates participant not found
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act
+>       response = client.delete(
+            f"/activities/{valid_activity}/participants",
+            json=email_payload
+        )
+E       TypeError: TestClient.delete() got an unexpected keyword argument 'json'
+
+tests/test_error_handling.py:146: TypeError
+____________ TestEdgeCases.test_signup_with_empty_participants_list ____________
+
+self = <tests.test_error_handling.TestEdgeCases object at 0x729198bd1d10>
+client = <starlette.testclient.TestClient object at 0x729198ae92b0>
+valid_activity = 'Chess Club', sample_email = 'student@example.com'
+
+    def test_signup_with_empty_participants_list(self, client, valid_activity, sample_email):
+        """
+        ARRANGE: Retrieve activity with empty participants
+        ACT: Sign up first participant
+        ASSERT: Verify participant is added correctly
+        """
+        # Arrange
+        email_payload = {"email": sample_email}
+    
+        # Act: Get initial state - should have empty or populated list
+        initial_response = client.get("/activities")
+        initial_activities = initial_response.json()
+>       initial_activity = next(a for a in initial_activities if a["name"] == valid_activity)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_error_handling.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <dict_keyiterator object at 0x729198b209f0>
+
+>   initial_activity = next(a for a in initial_activities if a["name"] == valid_activity)
+                                                             ^^^^^^^^^
+E   TypeError: string indices must be integers, not 'str'
+
+tests/test_error_handling.py:171: TypeError
+____________ TestEdgeCases.test_signup_multiple_activities_isolated ____________
+
+self = <tests.test_error_handling.TestEdgeCases object at 0x729198bd1e50>
+client = <starlette.testclient.TestClient object at 0x729198b2b070>
+sample_email = 'student@example.com'
+
+    def test_signup_multiple_activities_isolated(self, client, sample_email):
+        """
+        ARRANGE: Get two different activities
+        ACT: Sign up same email to both activities
+        ASSERT: Verify email appears in both but no cross-contamination
+        """
+        # Arrange
+        activity1 = "Chess Club"
+        activity2 = "Yoga Club"
+        email_payload = {"email": sample_email}
+    
+        # Act: Sign up to first activity
+        response1 = client.post(
+            f"/activities/{activity1}/signup",
+            json=email_payload
+        )
+    
+        # Act: Sign up to second activity
+        response2 = client.post(
+            f"/activities/{activity2}/signup",
+            json=email_payload
+        )
+    
+        # Assert: Both signups succeed
+>       assert response1.status_code == 200
+E       assert 422 == 200
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:208: AssertionError
+_______________ TestEdgeCases.test_case_sensitive_activity_names _______________
+
+self = <tests.test_error_handling.TestEdgeCases object at 0x729198c88c30>
+client = <starlette.testclient.TestClient object at 0x729198c05630>
+sample_email = 'student@example.com'
+
+    def test_case_sensitive_activity_names(self, client, sample_email):
+        """
+        ARRANGE: Prepare activity name with different case
+        ACT: Attempt signup with wrong case
+        ASSERT: Verify case-sensitive matching (should fail)
+        """
+        # Arrange
+        correct_activity = "Chess Club"
+        wrong_case_activity = "chess club"
+        email_payload = {"email": sample_email}
+    
+        # Act: Try with wrong case
+        response = client.post(
+            f"/activities/{wrong_case_activity}/signup",
+            json=email_payload
+        )
+    
+        # Assert: Should fail (case-sensitive)
+>       assert response.status_code == 404
+E       assert 422 == 404
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:233: AssertionError
+___________ TestEdgeCases.test_signup_different_emails_same_activity ___________
+
+self = <tests.test_error_handling.TestEdgeCases object at 0x729198c889d0>
+client = <starlette.testclient.TestClient object at 0x729198aea190>
+valid_activity = 'Chess Club'
+
+    def test_signup_different_emails_same_activity(self, client, valid_activity):
+        """
+        ARRANGE: Prepare multiple different emails
+        ACT: Sign up each to same activity (should all succeed)
+        ASSERT: Verify all participants are present, no duplicates allowed
+        """
+        # Arrange
+        emails = ["email1@test.com", "email2@test.com", "email3@test.com"]
+    
+        # Act & Assert: All different emails should succeed
+        responses = []
+        for email in emails:
+            response = client.post(
+                f"/activities/{valid_activity}/signup",
+                json={"email": email}
+            )
+            responses.append(response)
+>           assert response.status_code == 200
+E           assert 422 == 200
+E            +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests/test_error_handling.py:252: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_business_logic.py::TestSignupValidation::test_signup_email_persists_after_signup
+FAILED tests/test_business_logic.py::TestSignupValidation::test_multiple_signups_same_activity
+FAILED tests/test_business_logic.py::TestSignupValidation::test_signup_returns_updated_participant_count
+FAILED tests/test_business_logic.py::TestUnregisterValidation::test_unregister_email_removed_from_activity
+FAILED tests/test_business_logic.py::TestUnregisterValidation::test_signup_unregister_signup_again
+FAILED tests/test_business_logic.py::TestDataIntegrity::test_activity_structure_consistency
+FAILED tests/test_business_logic.py::TestDataIntegrity::test_participants_is_list_of_strings
+FAILED tests/test_business_logic.py::TestDataIntegrity::test_max_participants_field_exists
+FAILED tests/test_business_logic.py::TestActivitiesExist::test_default_activities_exist
+FAILED tests/test_endpoints.py::TestGetActivitiesEndpoint::test_get_activities_success
+FAILED tests/test_endpoints.py::TestGetActivitiesEndpoint::test_get_activities_structure
+FAILED tests/test_endpoints.py::TestGetActivitiesEndpoint::test_get_activities_contains_chess_club
+FAILED tests/test_endpoints.py::TestSignupEndpoint::test_signup_success - ass...
+FAILED tests/test_endpoints.py::TestSignupEndpoint::test_signup_with_different_emails
+FAILED tests/test_endpoints.py::TestSignupEndpoint::test_signup_duplicate_email_fails
+FAILED tests/test_endpoints.py::TestSignupEndpoint::test_signup_invalid_activity_fails
+FAILED tests/test_endpoints.py::TestSignupEndpoint::test_signup_response_contains_activity_info
+FAILED tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_success
+FAILED tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_nonexistent_participant_fails
+FAILED tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_from_invalid_activity_fails
+FAILED tests/test_endpoints.py::TestUnregisterEndpoint::test_unregister_response_contains_activity_info
+FAILED tests/test_error_handling.py::TestSignupErrorHandling::test_signup_invalid_activity_returns_404
+FAILED tests/test_error_handling.py::TestSignupErrorHandling::test_signup_duplicate_email_returns_400
+FAILED tests/test_error_handling.py::TestSignupErrorHandling::test_signup_duplicate_error_message_clear
+FAILED tests/test_error_handling.py::TestSignupErrorHandling::test_signup_activity_not_found_error_message
+FAILED tests/test_error_handling.py::TestUnregisterErrorHandling::test_unregister_invalid_activity_returns_404
+FAILED tests/test_error_handling.py::TestUnregisterErrorHandling::test_unregister_nonexistent_participant_returns_404
+FAILED tests/test_error_handling.py::TestUnregisterErrorHandling::test_unregister_nonexistent_participant_error_message
+FAILED tests/test_error_handling.py::TestEdgeCases::test_signup_with_empty_participants_list
+FAILED tests/test_error_handling.py::TestEdgeCases::test_signup_multiple_activities_isolated
+FAILED tests/test_error_handling.py::TestEdgeCases::test_case_sensitive_activity_names
+FAILED tests/test_error_handling.py::TestEdgeCases::test_signup_different_emails_same_activity
+========================= 32 failed, 1 passed in 0.38s =========================
